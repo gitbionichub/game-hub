@@ -4,18 +4,10 @@ class InputManager {
     this.canvas = null;
     this.gamepadIndex = null;
     
-    // Состояние геймпада
-    this.gpState = {
-      left: false, right: false, up: false, down: false,
-      a: false, b: false, start: false
-    };
+    this.gpState = { left: false, right: false, up: false, down: false, a: false, b: false, start: false };
     this.gpDAS = { left: 0, right: 0, up: 0, down: 0 };
-    
-    // Для навигации в меню
     this.focusables = [];
     this.focusIndex = -1;
-
-    // Для тач-кнопок (зажатие)
     this.touchHoldTimers = {};
 
     this.setupListeners();
@@ -34,7 +26,6 @@ class InputManager {
     }
   }
 
-  // === Управление фокусом (для меню) ===
   setFocusables(elements) {
     this.clearFocus();
     this.focusables = elements.filter(el => el && !el.classList.contains('hidden'));
@@ -71,7 +62,6 @@ class InputManager {
     }
   }
 
-  // === Опрос геймпада ===
   setupGamepad() {
     window.addEventListener("gamepadconnected", (e) => {
       this.gamepadIndex = e.gamepad.index;
@@ -131,13 +121,11 @@ class InputManager {
     requestAnimationFrame(pollGamepad);
   }
 
-  // === Слушатели клавиатуры и тача ===
   setupListeners() {
-    // --- Клавиатура ---
     window.addEventListener('keydown', (e) => {
       if (!this.activeGame) return;
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
-        if (this.activeGame.state === 'playing') this.activeGame.togglePause();
+        if (this.activeGame.state === 'playing' || this.activeGame.state === 'paused') this.activeGame.togglePause();
         return;
       }
       if (this.activeGame.state !== 'playing') return;
@@ -164,9 +152,13 @@ class InputManager {
       }
     });
 
-    // --- Тач-свайпы (Авто-режим) ---
     let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
     let touchMovedX = false, touchMovedY = false;
+
+    const resetSoftDrop = () => {
+      this.emit('softDropOff');
+      touchMovedY = false;
+    };
 
     document.addEventListener('touchstart', (e) => {
       if (!this.canvas || settings.data.inputMode !== 'keyboard_swipe') return;
@@ -185,20 +177,16 @@ class InputManager {
       const dx = t.clientX - touchStartX;
       const dy = t.clientY - touchStartY;
       
-      // Сдвиг по горизонтали
       if (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy)) {
         this.emit(dx > 0 ? 'right' : 'left');
         touchStartX = t.clientX; 
         touchMovedX = true;
-        touchMovedY = false; 
-      }
-      // Движение вниз (ускорение)
-      else if (dy > 24 && Math.abs(dy) > Math.abs(dx)) {
+        resetSoftDrop();
+      } else if (dy > 24 && Math.abs(dy) > Math.abs(dx)) {
         if (!touchMovedY) {
           this.emit('softDropOn'); 
           touchMovedY = true;
         }
-        // Не обновляем touchStartY, чтобы отследить общую длину свайпа при отпускании
       }
       e.preventDefault();
     }, { passive: false });
@@ -211,24 +199,24 @@ class InputManager {
       const dy = t.clientY - touchStartY;
       const dt = Date.now() - touchStartTime;
 
-      // Тап (поворот)
       if (!touchMovedX && !touchMovedY && Math.abs(dx) < 24 && Math.abs(dy) < 24 && dt < 300) {
         this.emit('rotate');
-      }
-      // Свайп вниз — жесткий сброс (если палец прошел достаточно далеко)
-      else if (touchMovedY && dy > 40 && Math.abs(dy) > Math.abs(dx)) {
-        this.emit('softDropOff'); // Выключаем ускорение
-        this.emit('hardDrop');    // И сбрасываем
-      }
-      // Просто отпустили палец после ускорения
-      else if (touchMovedY) {
-        this.emit('softDropOff');
+      } else if (touchMovedY && dy > 40 && Math.abs(dy) > Math.abs(dx)) {
+        resetSoftDrop();
+        this.emit('hardDrop');
+      } else if (touchMovedY) {
+        resetSoftDrop();
       }
       e.preventDefault();
     }, { passive: false });
+
+    // Дополнительная страховка от залипания пальца
+    document.addEventListener('touchcancel', () => {
+      if (!this.activeGame) return;
+      resetSoftDrop();
+    }, { passive: false });
   }
 
-  // === Отрисовка и логика тач-кнопок ===
   renderTouchButtons(container) {
     if (settings.data.inputMode !== 'touch_buttons') {
       container.innerHTML = ''; return;
@@ -247,7 +235,6 @@ class InputManager {
       </div>
     `;
 
-    // Навешиваем события на кнопки СРАЗУ после их создания
     const btns = container.querySelectorAll('.touch-btn');
     btns.forEach(btn => {
       const action = btn.dataset.action;
@@ -257,13 +244,11 @@ class InputManager {
         btn.classList.add('active');
         this.emit(action);
         
-        // Автоповтор для движения
         if (action === 'left' || action === 'right') {
           this.touchHoldTimers[action] = setInterval(() => {
             this.emit(action);
           }, 100);
         }
-        // Для softDrop, если бы он был на кнопке, тоже можно было бы добавить
       };
 
       const stopHold = (e) => {
@@ -273,7 +258,6 @@ class InputManager {
           clearInterval(this.touchHoldTimers[action]);
           delete this.touchHoldTimers[action];
         }
-        if (action === 'softDropOn') this.emit('softDropOff');
       };
 
       btn.addEventListener('pointerdown', startHold);

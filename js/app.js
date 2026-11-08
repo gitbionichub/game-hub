@@ -55,7 +55,7 @@ class App {
     const el = document.getElementById(elementId);
     if (!el) return;
     
-    el.onclick = () => {
+    const toggleValue = () => {
       const currentVal = el.getAttribute('data-value');
       let idx = optionsArray.findIndex(o => o.v.toString() === currentVal);
       idx = (idx + 1) % optionsArray.length;
@@ -66,14 +66,27 @@ class App {
       
       if (onSelect) onSelect(newOpt.v);
     };
+
+    this.bindTap(el, toggleValue);
   }
 
-  // Единая функция для кликов (без двойного срабатывания)
+  // Универсальная функция для кликов (работает и с мышью, и с тачем, и с геймпадом)
   bindTap(el, callback) {
     if (!el) return;
+    
+    // Для геймпада и клавиатуры (программный click)
+    el.addEventListener('click', (e) => {
+      if (e.pointerType !== 'touch') {
+        callback(e);
+      }
+    });
+
+    // Для тача (чтобы не было задержки 300мс)
     el.addEventListener('pointerdown', (e) => {
-      e.preventDefault(); 
-      callback(e);
+      if (e.pointerType === 'touch') {
+        e.preventDefault();
+        callback(e);
+      }
     });
   }
 
@@ -81,26 +94,18 @@ class App {
     const modalSettings = document.getElementById('modal-settings');
     const rowFixedSpeed = document.getElementById('row-fixed-speed');
 
-    this.setupCustomSelect('set-lang', this.options.lang, (val) => {
-      settings.data.lang = val;
-    });
+    this.setupCustomSelect('set-lang', this.options.lang, (val) => settings.data.lang = val);
     this.setupCustomSelect('set-theme', this.options.theme, (val) => {
       settings.data.theme = val;
       document.documentElement.setAttribute('data-theme', val);
     });
-    this.setupCustomSelect('set-input', this.options.input, (val) => {
-      settings.data.inputMode = val;
-    });
+    this.setupCustomSelect('set-input', this.options.input, (val) => settings.data.inputMode = val);
     this.setupCustomSelect('set-difficulty', this.options.difficulty, (val) => {
       settings.data.difficulty = val;
       rowFixedSpeed.classList.toggle('hidden', val !== 'fixed');
-      if (val === 'fixed') {
-        setTimeout(() => this.updateFocusables(), 10);
-      }
+      if (val === 'fixed') setTimeout(() => this.updateFocusables(), 10);
     });
-    this.setupCustomSelect('set-fixed-speed', this.options.fixedSpeed, (val) => {
-      settings.data.fixedSpeed = parseInt(val);
-    });
+    this.setupCustomSelect('set-fixed-speed', this.options.fixedSpeed, (val) => settings.data.fixedSpeed = parseInt(val));
 
     const openSettings = () => {
       if (this.activeGameInstance) this.activeGameInstance.pause();

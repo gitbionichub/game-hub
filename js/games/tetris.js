@@ -21,7 +21,6 @@ class TetrisGame {
     };
     this.TYPES = Object.keys(this.SHAPES);
 
-    // Ссылка на обработчик resize для удаления при destroy()
     this.resizeHandler = () => { this.calculateSize(); this.draw(); };
   }
 
@@ -223,7 +222,14 @@ class TetrisGame {
       const x = this.cur.x + cx; const y = this.cur.y + cy;
       if (y >= 0 && y < this.ROWS && x >= 0 && x < this.COLS) this.board[y][x] = this.cur.color;
     }
-    this.clearLines(); this.spawn(); this.draw();
+    
+    // СБРОС УСКОРЕНИЯ ПРИ ФИКСАЦИИ (чтобы следующая фигура не падала камнем)
+    this.softDrop = false;
+    this.lastDrop = 0;
+    
+    this.clearLines(); 
+    this.spawn(); 
+    this.draw();
   }
 
   clearLines() {
