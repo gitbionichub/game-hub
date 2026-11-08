@@ -1,0 +1,187 @@
+:root {
+  --bg: #05050a;
+  --panel: #16161e;
+  --text: #ddd;
+  --border: #333;
+  --accent: #6cf;
+  --btn: #222;
+  --grid: #15151f;
+  --font: monospace, sans-serif;
+}
+[data-theme="light"] {
+  --bg: #f4f4f8;
+  --panel: #ffffff;
+  --text: #222;
+  --border: #bbb;
+  --accent: #26a;
+  --btn: #e6e6ee;
+  --grid: #e2e2ea;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--bg); color: var(--text);
+  font-family: var(--font);
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none; user-select: none;
+}
+.screen {
+  display: flex; flex-direction: column;
+  height: 100%; width: 100%;
+}
+.hidden { display: none !important; }
+
+/* Общие компоненты */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
+  height: 50px; flex-shrink: 0;
+}
+.header h1 { margin: 0; font-size: 18px; color: var(--accent); }
+.btn {
+  padding: 8px 16px; font-size: 14px;
+  background: var(--btn); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  font-family: inherit; cursor: pointer;
+}
+.btn:active { background: var(--accent); color: var(--bg); }
+.btn.primary { background: var(--accent); color: var(--bg); font-weight: bold; }
+.btn-icon { padding: 8px 12px; font-size: 16px; }
+
+/* Меню */
+.menu-content {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 20px; overflow-y: auto;
+}
+.games-list {
+  display: flex; flex-direction: column; gap: 16px;
+  width: 100%; max-width: 400px;
+}
+.game-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px; text-align: center; cursor: pointer;
+  transition: transform 0.1s, border-color 0.2s;
+}
+.game-card:hover, .game-card:active { border-color: var(--accent); transform: scale(0.98); }
+.game-card h2 { margin: 0 0 8px; font-size: 20px; color: var(--accent); }
+.game-card p { margin: 0; font-size: 13px; opacity: 0.7; }
+.game-card.disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Игра */
+#game-area {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; padding: 10px;
+}
+canvas#game-canvas { 
+  background: var(--bg); border: 2px solid var(--border); border-radius: 4px;
+  max-width: 100%; max-height: 100%; object-fit: contain;
+}
+#game-hud {
+  padding: 10px 20px; display: flex; gap: 30px; justify-content: center; 
+  align-items: center; font-size: 14px; flex-shrink: 0;
+  background: var(--panel); border-top: 1px solid var(--border);
+}
+.hud-item { display: flex; flex-direction: column; align-items: center; }
+.hud-item span { font-size: 11px; opacity: 0.7; text-transform: uppercase; margin-bottom: 4px; }
+.hud-item b { font-size: 16px; color: var(--accent); }
+canvas#preview-canvas { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+
+/* Сенсорные кнопки */
+.touch-controls {
+  position: absolute; inset: 0; pointer-events: none;
+  display: flex; align-items: center; justify-content: space-between; padding: 20px 30px;
+}
+.touch-col { display: flex; flex-direction: column; gap: 30px; pointer-events: auto; }
+.touch-btn {
+  width: 90px; height: 90px; border-radius: 50%;
+  background: rgba(128,128,128,0.15); border: 2px solid var(--border);
+  color: var(--text); font-size: 36px; 
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px); transition: transform 0.05s;
+}
+.touch-btn:active { background: var(--accent); color: var(--bg); transform: scale(0.95); }
+@media (max-width: 400px) {
+  .touch-btn { width: 70px; height: 70px; font-size: 28px; }
+  .touch-controls { padding: 10px 15px; }
+  .touch-col { gap: 20px; }
+  #game-hud { gap: 15px; font-size: 12px; }
+}
+
+/* Оверлеи и Модалки */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 16px;
+}
+.modal {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 24px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto;
+}
+.modal h2 { margin: 0 0 16px; font-size: 20px; color: var(--accent); text-align: center; }
+.setting-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; font-size: 14px;
+}
+.setting-row select {
+  padding: 6px 10px; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px;
+  font-family: inherit; font-size: 14px; min-width: 140px;
+}
+.modal-actions { display: flex; gap: 10px; justify-content: center; margin-top: 24px; }
+
+/* Оверлей внутри игры (Пауза / Game Over) */
+.game-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 50;
+}
+.game-overlay h2 { font-size: 28px; color: var(--accent); margin-bottom: 10px; }
+/* Стили для навигации с геймпада / клавиатуры */
+.focused {
+  outline: 3px solid var(--accent) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 15px var(--accent);
+  transform: scale(1.02);
+  z-index: 10;
+}
+
+/* Кнопки в оверлее тоже должны фокусироваться */
+#overlay-actions .btn.focused {
+  background: var(--accent) !important;
+  color: var(--bg) !important;
+}
+
+/* Убираем стандартный outline, если он не наш */
+:focus:not(.focused) {
+  outline: none;
+}
+.custom-select {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 160px;
+  padding: 6px 10px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.custom-select:hover {
+  border-color: var(--accent);
+}
+.custom-select.focused {
+  border-color: var(--accent);
+  background: rgba(128, 128, 128, 0.2);
+  outline: none;
+  box-shadow: 0 0 8px var(--accent);
+}
+/* Разрешаем тапы по кнопкам в шапке, несмотря на touch-action: none у body */
+.header .btn {
+  touch-action: manipulation;
+}

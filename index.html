@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Game Hub</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ГЛАВНЫЙ ЭКРАН (МЕНЮ) -->
+  <div id="screen-menu" class="screen hidden">
+    <div class="header">
+      <h1 data-i18n="app_title">Game Hub</h1>
+      <div>
+        <button class="btn btn-icon" id="btn-menu-settings">⚙</button>
+      </div>
+    </div>
+    <div class="menu-content">
+      <div class="games-list" id="games-list"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ИГРЫ -->
+  <div id="screen-game" class="screen hidden">
+    <div class="header">
+      <button class="btn btn-icon" id="btn-game-back">←</button>
+      <h1 id="game-title">Game</h1>
+      <button class="btn btn-icon" id="btn-game-settings">⚙</button>
+    </div>
+    
+    <div id="game-area">
+      <canvas id="game-canvas"></canvas>
+      <div id="touch-controls-container"></div>
+      
+      <div id="game-overlay" class="game-overlay hidden">
+        <h2 id="overlay-title"></h2>
+        <div id="overlay-desc" style="margin-bottom: 20px; font-size: 16px;"></div>
+        <div id="overlay-actions" style="display: flex; gap: 10px; justify-content: center;"></div>
+      </div>
+    </div>
+    
+    <div id="game-hud" class="hidden">
+      <div class="hud-item"><span data-i18n="msg_score">Score</span><b id="hud-score">0</b></div>
+      <div class="hud-item"><span data-i18n="msg_lines">Lines</span><b id="hud-lines">0</b></div>
+      <div class="hud-item"><span data-i18n="msg_level">Level</span><b id="hud-level">1</b></div>
+      <div class="hud-item" id="preview-container"><span data-i18n="msg_next">Next</span><canvas id="preview-canvas" width="48" height="48"></canvas></div>
+    </div>
+  </div>
+
+  <!-- НАСТРОЙКИ -->
+  <div id="modal-settings" class="overlay hidden">
+    <div class="modal">
+      <h2 data-i18n="settings_title">Settings</h2>
+      
+      <div class="setting-row">
+        <label data-i18n="setting_language">Language</label>
+        <button class="custom-select" id="set-lang" data-value="en">
+          <span>English</span> <span>▾</span>
+        </button>
+      </div>
+      
+      <div class="setting-row">
+        <label data-i18n="setting_theme">Theme</label>
+        <button class="custom-select" id="set-theme" data-value="dark">
+          <span>Dark</span> <span>▾</span>
+        </button>
+      </div>
+
+      <div class="setting-row">
+        <label data-i18n="setting_input">Controls</label>
+        <button class="custom-select" id="set-input" data-value="keyboard_swipe">
+          <span>Auto</span> <span>▾</span>
+        </button>
+      </div>
+
+      <div class="setting-row">
+        <label data-i18n="setting_difficulty">Difficulty</label>
+        <button class="custom-select" id="set-difficulty" data-value="normal">
+          <span>Normal</span> <span>▾</span>
+        </button>
+      </div>
+
+      <div class="setting-row hidden" id="row-fixed-speed">
+        <label data-i18n="setting_speed">Speed</label>
+        <button class="custom-select" id="set-fixed-speed" data-value="800">
+          <span>Medium</span> <span>▾</span>
+        </button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn primary" id="btn-close-settings" data-i18n="btn_ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/games/tetris.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
