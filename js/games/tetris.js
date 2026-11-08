@@ -1,3 +1,5 @@
+// === ИСПРАВЛЕННЫЙ ФАЙЛ games/tetris.js ===
+
 class TetrisGame {
   constructor() {
     this.canvas = null; this.ctx = null;
@@ -21,6 +23,7 @@ class TetrisGame {
     };
     this.TYPES = Object.keys(this.SHAPES);
 
+    // Ссылка на обработчик resize для удаления при destroy()
     this.resizeHandler = () => { this.calculateSize(); this.draw(); };
   }
 
@@ -33,11 +36,12 @@ class TetrisGame {
     
     document.getElementById('game-hud').classList.remove('hidden');
     this.calculateSize();
+    
+    // Добавляем слушатель с сохраненной ссылкой
     window.addEventListener('resize', this.resizeHandler);
 
     inputManager.bindGame(this, this.canvas);
-    inputManager.renderTouchButtons(document.getElementById('touch-controls-container'));
-
+    
     this.initBoard();
     this.state = 'ready';
     this.draw();
@@ -45,7 +49,9 @@ class TetrisGame {
   }
 
   destroy() {
+    // Удаляем слушатель по сохраненной ссылке
     window.removeEventListener('resize', this.resizeHandler);
+    
     this.stop();
     inputManager.activeGame = null;
     document.getElementById('game-hud').classList.add('hidden');
@@ -223,7 +229,7 @@ class TetrisGame {
       if (y >= 0 && y < this.ROWS && x >= 0 && x < this.COLS) this.board[y][x] = this.cur.color;
     }
     
-    // СБРОС УСКОРЕНИЯ ПРИ ФИКСАЦИИ (чтобы следующая фигура не падала камнем)
+    // Сброс ускорения при фиксации
     this.softDrop = false;
     this.lastDrop = 0;
     

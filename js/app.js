@@ -8,14 +8,13 @@ class App {
     this.options = {
       lang: [{v:'en', t:'English'}, {v:'ru', t:'Русский'}],
       theme: [{v:'dark', t:'Dark'}, {v:'light', t:'Light'}],
-      input: [{v:'keyboard_swipe', t:'Auto'}, {v:'touch_buttons', t:'Buttons'}],
       difficulty: [{v:'normal', t:'Normal'}, {v:'fixed', t:'Fixed'}],
       fixedSpeed: [{v:'1200', t:'Slow'}, {v:'800', t:'Medium'}, {v:'450', t:'Fast'}, {v:'150', t:'Extreme'}]
     };
 
     this.games = [
       { id: 'tetris', titleKey: 'game_tetris_title', descKey: 'game_tetris_desc', class: TetrisGame },
-      { id: 'snake', titleKey: 'game_snake_title', descKey: 'game_snake_desc', class: null, disabled: true },
+      { id: 'snake', titleKey: 'game_snake_title', descKey: 'game_snake_desc', class: SnakeGame },
     ];
 
     this.initUI();
@@ -31,23 +30,25 @@ class App {
   }
 
   updateFocusables() {
+    if (!window.inputManager) return;
+    
     const modalSettings = document.getElementById('modal-settings');
     const overlay = document.getElementById('game-overlay');
     
-    if (!modalSettings.classList.contains('hidden')) {
+    if (modalSettings && !modalSettings.classList.contains('hidden')) {
       const elements = modalSettings.querySelectorAll('.custom-select, #btn-close-settings');
-      inputManager.setFocusables(Array.from(elements));
-    } else if (!overlay.classList.contains('hidden')) {
+      window.inputManager.setFocusables(Array.from(elements));
+    } else if (overlay && !overlay.classList.contains('hidden')) {
       const elements = overlay.querySelectorAll('button');
-      inputManager.setFocusables(Array.from(elements));
-    } else if (!this.screenMenu.classList.contains('hidden')) {
+      window.inputManager.setFocusables(Array.from(elements));
+    } else if (this.screenMenu && !this.screenMenu.classList.contains('hidden')) {
       const elements = [document.getElementById('btn-menu-settings')];
       this.gamesListEl.querySelectorAll('.game-card:not(.disabled)').forEach(card => {
         elements.push(card);
       });
-      inputManager.setFocusables(elements);
+      window.inputManager.setFocusables(elements);
     } else {
-      inputManager.clearFocus();
+      window.inputManager.clearFocus();
     }
   }
 
@@ -70,18 +71,11 @@ class App {
     this.bindTap(el, toggleValue);
   }
 
-  // Универсальная функция для кликов (работает и с мышью, и с тачем, и с геймпадом)
   bindTap(el, callback) {
     if (!el) return;
-    
-    // Для геймпада и клавиатуры (программный click)
     el.addEventListener('click', (e) => {
-      if (e.pointerType !== 'touch') {
-        callback(e);
-      }
+      if (e.pointerType !== 'touch') callback(e);
     });
-
-    // Для тача (чтобы не было задержки 300мс)
     el.addEventListener('pointerdown', (e) => {
       if (e.pointerType === 'touch') {
         e.preventDefault();
@@ -99,10 +93,9 @@ class App {
       settings.data.theme = val;
       document.documentElement.setAttribute('data-theme', val);
     });
-    this.setupCustomSelect('set-input', this.options.input, (val) => settings.data.inputMode = val);
     this.setupCustomSelect('set-difficulty', this.options.difficulty, (val) => {
       settings.data.difficulty = val;
-      rowFixedSpeed.classList.toggle('hidden', val !== 'fixed');
+      if(rowFixedSpeed) rowFixedSpeed.classList.toggle('hidden', val !== 'fixed');
       if (val === 'fixed') setTimeout(() => this.updateFocusables(), 10);
     });
     this.setupCustomSelect('set-fixed-speed', this.options.fixedSpeed, (val) => settings.data.fixedSpeed = parseInt(val));
@@ -112,6 +105,7 @@ class App {
       
       const updateBtn = (id, opts, currentVal) => {
         const el = document.getElementById(id);
+        if (!el) return;
         const opt = opts.find(o => o.v.toString() === currentVal.toString()) || opts[0];
         el.setAttribute('data-value', opt.v);
         el.querySelector('span').textContent = opt.t;
@@ -119,12 +113,11 @@ class App {
       
       updateBtn('set-lang', this.options.lang, settings.data.lang);
       updateBtn('set-theme', this.options.theme, settings.data.theme);
-      updateBtn('set-input', this.options.input, settings.data.inputMode);
       updateBtn('set-difficulty', this.options.difficulty, settings.data.difficulty);
       updateBtn('set-fixed-speed', this.options.fixedSpeed, settings.data.fixedSpeed);
       
-      rowFixedSpeed.classList.toggle('hidden', settings.data.difficulty !== 'fixed');
-      modalSettings.classList.remove('hidden');
+      if(rowFixedSpeed) rowFixedSpeed.classList.toggle('hidden', settings.data.difficulty !== 'fixed');
+      if(modalSettings) modalSettings.classList.remove('hidden');
       this.updateFocusables();
     };
 
@@ -135,12 +128,11 @@ class App {
       i18n.updateDOM();
       
       if (this.activeGameInstance) {
-        inputManager.renderTouchButtons(document.getElementById('touch-controls-container'));
-        this.activeGameInstance.updateHud();
-        this.activeGameInstance.calculateSize();
-        this.activeGameInstance.draw();
+        if (this.activeGameInstance.updateHud) this.activeGameInstance.updateHud();
+        if (this.activeGameInstance.calculateSize) this.activeGameInstance.calculateSize();
+        if (this.activeGameInstance.draw) this.activeGameInstance.draw();
       }
-      modalSettings.classList.add('hidden');
+      if(modalSettings) modalSettings.classList.add('hidden');
       
       if (this.activeGameInstance && this.activeGameInstance.state === 'paused') {
          this.activeGameInstance.resume();
@@ -152,7 +144,7 @@ class App {
 
     window.addEventListener('lang-changed', () => {
       this.renderGamesList();
-      if (this.activeGameInstance) this.activeGameInstance.updateHud();
+      if (this.activeGameInstance && this.activeGameInstance.updateHud) this.activeGameInstance.updateHud();
     });
 
     this.renderGamesList();
@@ -197,18 +189,25 @@ class App {
     const area = document.getElementById('game-area');
     area.innerHTML = `
       <canvas id="game-canvas"></canvas>
-      <div id="touch-controls-container" style="position:absolute; inset:0; pointer-events:none;"></div>
-      <div id="game-overlay" class="game-overlay hidden">
+        <div id="game-overlay" class="game-overlay hidden">
         <h2 id="overlay-title"></h2>
         <div id="overlay-desc" style="margin-bottom: 20px; font-size: 16px;"></div>
         <div id="overlay-actions" style="display: flex; gap: 10px; justify-content: center;"></div>
       </div>
     `;
     
-    this.activeGameInstance = new gameDef.class();
-    this.activeGameInstance.init(area);
+    try {
+      // Создаем игру и СРАЗУ передаем ей ID из конфигурации
+      this.activeGameInstance = new gameDef.class();
+      this.activeGameInstance.id = gameDef.id; 
+      this.activeGameInstance.init(area);
+    } catch (e) {
+      console.error("Ошибка при запуске игры:", e);
+      alert("Не удалось запустить игру. Проверьте консоль.");
+      this.exitToMenu();
+    }
     
-    inputManager.clearFocus();
+    if (window.inputManager) window.inputManager.clearFocus();
   }
 }
 

@@ -1,7 +1,7 @@
 const TRANSLATIONS = {
   en: {
-    app_title: "Game Hub", game_tetris_title: "Tetris", game_tetris_desc: "Classic block puzzle",
-    game_snake_title: "Snake", game_snake_desc: "Coming soon", settings_title: "Settings",
+    btn_restart: "Restart", app_title: "Game Hub", game_tetris_title: "Tetris", game_tetris_desc: "Classic block puzzle",
+    game_snake_title: "Snake", game_snake_desc: "Classic tail chase", settings_title: "Settings",
     setting_language: "Language", setting_theme: "Theme", setting_input: "Controls",
     setting_difficulty: "Difficulty", setting_speed: "Speed",
     theme_dark: "Dark", theme_light: "Light", input_auto: "Auto (Keyboard/Swipe)", input_buttons: "Screen Buttons",
@@ -11,8 +11,8 @@ const TRANSLATIONS = {
     msg_score: "Score", msg_lines: "Lines", msg_level: "Level", msg_next: "Next", msg_back_to_menu: "To Menu"
   },
   ru: {
-    app_title: "Игровой Хаб", game_tetris_title: "Тетрис", game_tetris_desc: "Классическая головоломка",
-    game_snake_title: "Змейка", game_snake_desc: "Скоро", settings_title: "Настройки",
+    btn_restart: "Заново", app_title: "Игровой Хаб", game_tetris_title: "Тетрис", game_tetris_desc: "Классическая головоломка",
+    game_snake_title: "Змейка", game_snake_desc: "Классическая погоня за хвостом", settings_title: "Настройки",
     setting_language: "Язык", setting_theme: "Тема", setting_input: "Управление",
     setting_difficulty: "Сложность", setting_speed: "Скорость",
     theme_dark: "Тёмная", theme_light: "Светлая", input_auto: "Авто (Клавиатура/Свайпы)", input_buttons: "Экранные кнопки",

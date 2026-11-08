@@ -8,7 +8,6 @@ class InputManager {
     this.gpDAS = { left: 0, right: 0, up: 0, down: 0 };
     this.focusables = [];
     this.focusIndex = -1;
-    this.touchHoldTimers = {};
 
     this.setupListeners();
     this.setupGamepad();
@@ -94,11 +93,35 @@ class InputManager {
             if (isRight && !this.gpState.right) { this.emit('right'); this.gpDAS.right = 150; }
             else if (isRight) { this.gpDAS.right -= dt; if (this.gpDAS.right <= 0) { this.emit('right'); this.gpDAS.right = 50; } }
 
-            if (isDown && !this.gpState.down) { this.emit('softDropOn'); }
-            else if (!isDown && this.gpState.down) { this.emit('softDropOff'); }
+            if (isUp && !this.gpState.up) { 
+              this.emit(this.activeGame.id === 'tetris' ? 'rotate' : 'up'); 
+              this.gpDAS.up = 150; 
+            }
+            else if (isUp) { 
+              this.gpDAS.up -= dt; 
+              if (this.gpDAS.up <= 0) { 
+                this.emit(this.activeGame.id === 'tetris' ? 'rotate' : 'up'); 
+                this.gpDAS.up = 50; 
+              } 
+            }
 
-            if (isA && !this.gpState.a) this.emit('rotate');
-            if (isB && !this.gpState.b) this.emit('hardDrop');
+            if (isDown && !this.gpState.down) { 
+              this.emit(this.activeGame.id === 'tetris' ? 'softDropOn' : 'down'); 
+              this.gpDAS.down = 150; 
+            }
+            else if (isDown) { 
+              this.gpDAS.down -= dt; 
+              if (this.gpDAS.down <= 0) { 
+                this.emit(this.activeGame.id === 'tetris' ? 'softDropOn' : 'down'); 
+                this.gpDAS.down = 50; 
+              } 
+            }
+            else if (!isDown && this.gpState.down && this.activeGame.id === 'tetris') {
+              this.emit('softDropOff');
+            }
+
+            if (isA && !this.gpState.a) this.emit(this.activeGame.id === 'tetris' ? 'rotate' : 'action');
+            if (isB && !this.gpState.b) this.emit(this.activeGame.id === 'tetris' ? 'hardDrop' : 'back');
             if (isStart && !this.gpState.start) this.activeGame.togglePause();
 
           } else if (this.focusables.length > 0) {
@@ -131,24 +154,33 @@ class InputManager {
       if (this.activeGame.state !== 'playing') return;
 
       let action = null;
+      const isTetris = this.activeGame.id === 'tetris';
+
       switch(e.key) {
         case 'ArrowLeft': case 'a': case 'A': case 'ф': case 'Ф': action = 'left'; break;
         case 'ArrowRight': case 'd': case 'D': case 'в': case 'В': action = 'right'; break;
-        case 'ArrowDown': case 's': case 'S': case 'ы': case 'Ы': action = 'softDropOn'; break;
-        case 'ArrowUp': case 'w': case 'W': case 'ц': case 'Ц': case 'x': case 'X': action = 'rotate'; break;
-        case ' ': action = 'hardDrop'; break;
+        case 'ArrowDown': case 's': case 'S': case 'ы': case 'Ы': action = isTetris ? 'softDropOn' : 'down'; break;
+        case 'ArrowUp': case 'x': case 'X': action = isTetris ? 'rotate' : 'up'; break;
+        case 'w': case 'W': case 'ц': case 'Ц': action = isTetris ? 'rotate' : 'up'; break;
+        case ' ': 
+          if (isTetris) action = 'hardDrop';
+          break;
       }
+      
       if (action) {
         e.preventDefault();
-        if (action === 'softDropOn' && !e.repeat) this.emit(action);
-        else if (action !== 'softDropOn') this.emit(action);
+        if (action === 'softDropOn' && !e.repeat) {
+          this.emit(action);
+        } else if (action !== 'softDropOn') {
+          this.emit(action);
+        }
       }
     });
 
     window.addEventListener('keyup', (e) => {
       if (!this.activeGame) return;
       if (['ArrowDown', 's', 'S', 'ы', 'Ы'].includes(e.key)) {
-        this.emit('softDropOff');
+        if (this.activeGame.id === 'tetris') this.emit('softDropOff');
       }
     });
 
@@ -156,12 +188,12 @@ class InputManager {
     let touchMovedX = false, touchMovedY = false;
 
     const resetSoftDrop = () => {
-      this.emit('softDropOff');
+      if (this.activeGame.id === 'tetris') this.emit('softDropOff');
       touchMovedY = false;
     };
 
     document.addEventListener('touchstart', (e) => {
-      if (!this.canvas || settings.data.inputMode !== 'keyboard_swipe') return;
+      if (!this.canvas) return;
       if (e.target !== this.canvas && !this.canvas.contains(e.target)) return;
       if (this.activeGame.state !== 'playing') return;
       const t = e.changedTouches[0];
@@ -171,100 +203,64 @@ class InputManager {
     }, { passive: false });
 
     document.addEventListener('touchmove', (e) => {
-      if (!this.canvas || settings.data.inputMode !== 'keyboard_swipe' || !this.activeGame) return;
+      if (!this.canvas || !this.activeGame) return;
       if (this.activeGame.state !== 'playing') return;
       const t = e.changedTouches[0];
       const dx = t.clientX - touchStartX;
       const dy = t.clientY - touchStartY;
       
-      if (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy)) {
-        this.emit(dx > 0 ? 'right' : 'left');
-        touchStartX = t.clientX; 
-        touchMovedX = true;
-        resetSoftDrop();
-      } else if (dy > 24 && Math.abs(dy) > Math.abs(dx)) {
-        if (!touchMovedY) {
-          this.emit('softDropOn'); 
-          touchMovedY = true;
+      if (this.activeGame.id === 'tetris') {
+        if (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy)) {
+          this.emit(dx > 0 ? 'right' : 'left');
+          touchStartX = t.clientX; 
+          touchMovedX = true;
+          resetSoftDrop();
+        } else if (dy > 24 && Math.abs(dy) > Math.abs(dx)) {
+          if (!touchMovedY) {
+            this.emit('softDropOn'); 
+            touchMovedY = true;
+          }
+        }
+      } else if (this.activeGame.id === 'snake') {
+        if (Math.abs(dx) > 24 || Math.abs(dy) > 24) {
+          if (Math.abs(dx) > Math.abs(dy)) {
+            this.emit(dx > 0 ? 'right' : 'left');
+          } else {
+            this.emit(dy > 0 ? 'down' : 'up');
+          }
+          touchStartX = t.clientX;
+          touchStartY = t.clientY;
+          touchMovedX = true;
         }
       }
       e.preventDefault();
     }, { passive: false });
 
     document.addEventListener('touchend', (e) => {
-      if (!this.canvas || settings.data.inputMode !== 'keyboard_swipe' || !this.activeGame) return;
+      if (!this.canvas || !this.activeGame) return;
       if (this.activeGame.state !== 'playing') return;
       const t = e.changedTouches[0];
       const dx = t.clientX - touchStartX;
       const dy = t.clientY - touchStartY;
       const dt = Date.now() - touchStartTime;
 
-      if (!touchMovedX && !touchMovedY && Math.abs(dx) < 24 && Math.abs(dy) < 24 && dt < 300) {
-        this.emit('rotate');
-      } else if (touchMovedY && dy > 40 && Math.abs(dy) > Math.abs(dx)) {
-        resetSoftDrop();
-        this.emit('hardDrop');
-      } else if (touchMovedY) {
-        resetSoftDrop();
+      if (this.activeGame.id === 'tetris') {
+        if (!touchMovedX && !touchMovedY && Math.abs(dx) < 24 && Math.abs(dy) < 24 && dt < 300) {
+          this.emit('rotate');
+        } else if (touchMovedY && dy > 40 && Math.abs(dy) > Math.abs(dx)) {
+          resetSoftDrop();
+          this.emit('hardDrop');
+        } else if (touchMovedY) {
+          resetSoftDrop();
+        }
       }
       e.preventDefault();
     }, { passive: false });
 
-    // Дополнительная страховка от залипания пальца
     document.addEventListener('touchcancel', () => {
       if (!this.activeGame) return;
       resetSoftDrop();
     }, { passive: false });
-  }
-
-  renderTouchButtons(container) {
-    if (settings.data.inputMode !== 'touch_buttons') {
-      container.innerHTML = ''; return;
-    }
-    
-    container.innerHTML = `
-      <div class="touch-controls">
-        <div class="touch-col">
-          <div class="touch-btn" data-action="left">←</div>
-          <div class="touch-btn" data-action="right">→</div>
-        </div>
-        <div class="touch-col">
-          <div class="touch-btn" data-action="rotate">⟳</div>
-          <div class="touch-btn" data-action="hardDrop">⇩</div>
-        </div>
-      </div>
-    `;
-
-    const btns = container.querySelectorAll('.touch-btn');
-    btns.forEach(btn => {
-      const action = btn.dataset.action;
-
-      const startHold = (e) => {
-        e.preventDefault();
-        btn.classList.add('active');
-        this.emit(action);
-        
-        if (action === 'left' || action === 'right') {
-          this.touchHoldTimers[action] = setInterval(() => {
-            this.emit(action);
-          }, 100);
-        }
-      };
-
-      const stopHold = (e) => {
-        if (e) e.preventDefault();
-        btn.classList.remove('active');
-        if (this.touchHoldTimers[action]) {
-          clearInterval(this.touchHoldTimers[action]);
-          delete this.touchHoldTimers[action];
-        }
-      };
-
-      btn.addEventListener('pointerdown', startHold);
-      btn.addEventListener('pointerup', stopHold);
-      btn.addEventListener('pointercancel', stopHold);
-      btn.addEventListener('pointerleave', stopHold);
-    });
   }
 }
 

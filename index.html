@@ -31,7 +31,6 @@
     
     <div id="game-area">
       <canvas id="game-canvas"></canvas>
-      <div id="touch-controls-container"></div>
       
       <div id="game-overlay" class="game-overlay hidden">
         <h2 id="overlay-title"></h2>
@@ -68,13 +67,6 @@
       </div>
 
       <div class="setting-row">
-        <label data-i18n="setting_input">Controls</label>
-        <button class="custom-select" id="set-input" data-value="keyboard_swipe">
-          <span>Auto</span> <span>▾</span>
-        </button>
-      </div>
-
-      <div class="setting-row">
         <label data-i18n="setting_difficulty">Difficulty</label>
         <button class="custom-select" id="set-difficulty" data-value="normal">
           <span>Normal</span> <span>▾</span>
@@ -98,6 +90,7 @@
   <script src="js/settings.js"></script>
   <script src="js/input.js"></script>
   <script src="js/games/tetris.js"></script>
+  <script src="js/games/snake.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
